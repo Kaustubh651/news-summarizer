@@ -1,16 +1,6 @@
-import nltk
-
-# Ensure 'punkt' tokenizer is available
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-
 import streamlit as st
 from newspaper import Article
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.summarizers.lsa import LsaSummarizer
+from transformers import pipeline
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -24,7 +14,7 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(SERVICE_ACCOUNT_INFO, SCOPE)
     client = gspread.authorize(creds)
     SPREADSHEET_NAME = "Project@KI"
-
+    
     try:
         sheet = client.open(SPREADSHEET_NAME).sheet1
     except gspread.exceptions.SpreadsheetNotFound:
@@ -32,21 +22,19 @@ def init_gspread():
         sheet.append_row(["Title", "Summary", "Top Image URL"])
     return sheet
 
-# Article extraction
+@st.cache_resource
+def load_summarizer():
+    return pipeline("summarization", model="facebook/bart-large-cnn")
+
 def extract_article(url):
     article = Article(url)
     article.download()
     article.parse()
     return article.title, article.text, article.top_image
 
-# Summarization using Sumy
-def summarize_text(text, sentence_count=3):
-    parser = PlaintextParser.from_string(text, Tokenizer("english"))
-    summarizer = LsaSummarizer()
-    summary = summarizer(parser.document, sentence_count)
-    return ' '.join([str(sentence) for sentence in summary])
+def summarize_text(text, summarizer, max_len=130, min_len=30):
+    return summarizer(text, max_length=max_len, min_length=min_len, do_sample=False)[0]['summary_text']
 
-# Check for duplicate article
 def is_duplicate(sheet, title):
     rows = sheet.get_all_values()
     existing_titles = [row[0] for row in rows[1:]]
@@ -62,27 +50,30 @@ if st.button("Summarize and Save") and url:
     with st.spinner("Extracting article..."):
         try:
             title, content, top_image = extract_article(url)
-            summary = summarize_text(content)
-
-            st.subheader("📌 Title")
-            st.write(title)
-
-            st.subheader("🧾 Summary")
-            st.write(summary)
-
-            if top_image:
-                st.image(top_image, caption="Top Image", use_column_width=True)
-
-            sheet = init_gspread()
-
-            if is_duplicate(sheet, title):
-                st.warning("⚠️ This article already exists in the sheet.")
+            if not content.strip():
+                st.error("❌ Could not extract any text from the article.")
             else:
-                sheet.append_row([title, summary, top_image])
-                st.success("✅ Article added to Google Sheet!")
+                summarizer = load_summarizer()
+                summary = summarize_text(content, summarizer)
 
-            sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}"
-            st.markdown(f"[🔗 Open Google Sheet]({sheet_url})", unsafe_allow_html=True)
+                st.subheader("📌 Title")
+                st.write(title)
+
+                st.subheader("🧾 Summary")
+                st.write(summary)
+
+                if top_image:
+                    st.image(top_image, caption="Top Image", use_column_width=True)
+
+                sheet = init_gspread()
+                if is_duplicate(sheet, title):
+                    st.warning("⚠️ This article already exists in the sheet.")
+                else:
+                    sheet.append_row([title, summary, top_image])
+                    st.success("✅ Article added to Google Sheet!")
+
+                sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}"
+                st.markdown(f"[🔗 Open Google Sheet]({sheet_url})", unsafe_allow_html=True)
 
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
