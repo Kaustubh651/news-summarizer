@@ -1,7 +1,7 @@
 streamlit
 newspaper3k
 transformers==4.38.2
-torch
+torch==2.1.0
 gspread
 oauth2client
 lxml[html_clean]
