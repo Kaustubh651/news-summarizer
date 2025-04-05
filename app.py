@@ -12,7 +12,7 @@ import json
 
 # Setup scope and credentials using Streamlit Secrets
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_INFO = json.loads(st.secrets["service_account"])
+SERVICE_ACCOUNT_INFO = st.secrets["service_account"]
 
 @st.cache_resource
 def init_gspread():
