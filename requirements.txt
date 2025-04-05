@@ -1,6 +1,6 @@
 streamlit
 newspaper3k
+transformers==4.38.2
+torch
 gspread
 oauth2client
-transformers
-torch
