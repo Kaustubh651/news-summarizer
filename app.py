@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from newspaper import Article
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
@@ -24,6 +25,8 @@ def init_gspread():
 
 @st.cache_resource
 def load_summarizer():
+    
+    os.environ["HUGGINGFACE_HUB_TOKEN"] = st.secrets["huggingface"]["token"]
     tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
     model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
     return pipeline("summarization", model=model, tokenizer=tokenizer)
