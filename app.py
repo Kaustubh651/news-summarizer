@@ -1,6 +1,3 @@
-import nltk
-nltk.download('punkt')
-
 import streamlit as st
 from newspaper import Article
 import nltk
@@ -11,13 +8,15 @@ from sumy.summarizers.lsa import LsaSummarizer
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+import json
+
 # Setup scope and credentials using Streamlit Secrets
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-# SERVICE_ACCOUNT_INFO = json.loads(st.secrets["service_account"])
+SERVICE_ACCOUNT_INFO = json.loads(st.secrets["service_account"])
 
 @st.cache_resource
 def init_gspread():
-    creds = ServiceAccountCredentials.from_json_keyfile_name("gen-lang-client-0709660306-d66c48c393e4.json", SCOPE)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(SERVICE_ACCOUNT_INFO, SCOPE)
     client = gspread.authorize(creds)
     SPREADSHEET_NAME = "Project@KI"
     
