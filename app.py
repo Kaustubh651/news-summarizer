@@ -1,11 +1,15 @@
+import nltk
+nltk.download('punkt')
+
 import streamlit as st
 from newspaper import Article
+import nltk
+nltk.download('punkt')
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import json
 
 # Setup scope and credentials using Streamlit Secrets
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
