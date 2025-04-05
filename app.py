@@ -1,7 +1,11 @@
+import nltk
+
+# Download 'punkt' if not already available
+nltk.download('punkt')
+
 import streamlit as st
 from newspaper import Article
-import nltk
-nltk.download('punkt')
+
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
