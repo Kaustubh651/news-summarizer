@@ -9,11 +9,11 @@ import json
 
 # Setup scope and credentials using Streamlit Secrets
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-SERVICE_ACCOUNT_INFO = json.loads(st.secrets["service_account"])
+# SERVICE_ACCOUNT_INFO = json.loads(st.secrets["service_account"])
 
 @st.cache_resource
 def init_gspread():
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(SERVICE_ACCOUNT_INFO, SCOPE)
+    creds = ServiceAccountCredentials.from_json_keyfile_name("gen-lang-client-0709660306-d66c48c393e4.json", SCOPE)
     client = gspread.authorize(creds)
     SPREADSHEET_NAME = "Project@KI"
     
