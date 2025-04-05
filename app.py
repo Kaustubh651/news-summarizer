@@ -1,16 +1,18 @@
 import nltk
-nltk.download('punkt', quiet=True)  # download punkt tokenizer silently
 
+# Ensure 'punkt' tokenizer is available
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
 import streamlit as st
 from newspaper import Article
-
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-
 import json
 
 # Setup scope and credentials using Streamlit Secrets
@@ -22,7 +24,7 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(SERVICE_ACCOUNT_INFO, SCOPE)
     client = gspread.authorize(creds)
     SPREADSHEET_NAME = "Project@KI"
-    
+
     try:
         sheet = client.open(SPREADSHEET_NAME).sheet1
     except gspread.exceptions.SpreadsheetNotFound:
