@@ -1,6 +1,6 @@
 import streamlit as st
 from newspaper import Article
-from transformers import pipeline
+from transformers import pipeline, AutoModelForSeq2SeqLM, AutoTokenizer
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -14,7 +14,7 @@ def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(SERVICE_ACCOUNT_INFO, SCOPE)
     client = gspread.authorize(creds)
     SPREADSHEET_NAME = "Project@KI"
-    
+
     try:
         sheet = client.open(SPREADSHEET_NAME).sheet1
     except gspread.exceptions.SpreadsheetNotFound:
@@ -24,7 +24,10 @@ def init_gspread():
 
 @st.cache_resource
 def load_summarizer():
-    return pipeline("summarization", model="facebook/bart-large-cnn")
+    # Manual loading to avoid lazy init errors
+    tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
+    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
+    return pipeline("summarization", model=model, tokenizer=tokenizer)
 
 def extract_article(url):
     article = Article(url)
