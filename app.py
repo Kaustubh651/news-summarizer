@@ -48,6 +48,9 @@ def extract_article(url):
     return article.title.strip(), article.text.strip(), article.top_image
 
 def summarize_text(text, summarizer, max_len=130, min_len=30):
+    input_len = len(text.split())
+    if input_len < 60:
+        max_len = 60
     return summarizer(text, max_length=max_len, min_length=min_len, do_sample=False)[0]['summary_text']
 
 def is_duplicate(sheet, title):
@@ -76,7 +79,7 @@ if st.button("Summarize and Save") and url:
                 st.write(summary)
 
                 if top_image:
-                    st.image(top_image, caption="Top Image", use_column_width=True)
+                    st.image(top_image, caption="Top Image", use_container_width=True)
 
                 sheet = init_gspread()
 
