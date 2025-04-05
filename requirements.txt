@@ -1,8 +1,6 @@
 streamlit
 newspaper3k
-sumy
 gspread
 oauth2client
-lxml[html_clean]
-nltk
-sumy
+transformers
+torch
