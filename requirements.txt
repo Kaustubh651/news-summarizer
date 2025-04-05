@@ -4,3 +4,4 @@ sumy
 gspread
 oauth2client
 lxml[html_clean]
+nltk
