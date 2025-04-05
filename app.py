@@ -1,10 +1,19 @@
 import os
+import sys
+import asyncio
 import streamlit as st
 from newspaper import Article
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import pipeline
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import json
+
+# Fix for Windows asyncio error (can be safely used cross-platform)
+if hasattr(asyncio, "WindowsSelectorEventLoopPolicy"):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+# Set Streamlit page config
+st.set_page_config(page_title="News Summarizer to Google Sheet", layout="centered")
+st.title("📰 News Summarizer & Google Sheet Saver")
 
 # Setup scope and credentials using Streamlit Secrets
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -25,11 +34,8 @@ def init_gspread():
 
 @st.cache_resource
 def load_summarizer():
-    
     os.environ["HUGGINGFACE_HUB_TOKEN"] = st.secrets["huggingface"]["token"]
-    tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
-    model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn")
-    return pipeline("summarization", model=model, tokenizer=tokenizer)
+    return pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 
 def extract_article(url):
     article = Article(url)
@@ -45,10 +51,7 @@ def is_duplicate(sheet, title):
     existing_titles = [row[0] for row in rows[1:]]
     return title in existing_titles
 
-# Streamlit UI
-st.set_page_config(page_title="News Summarizer to Google Sheet", layout="centered")
-st.title("📰 News Summarizer & Google Sheet Saver")
-
+# App Input
 url = st.text_input("Paste a news article URL")
 
 if st.button("Summarize and Save") and url:
@@ -68,7 +71,7 @@ if st.button("Summarize and Save") and url:
                 st.write(summary)
 
                 if top_image:
-                    st.image(top_image, caption="Top Image", use_column_width=True)
+                    st.image(top_image, caption="Top Image", use_container_width=True)
 
                 sheet = init_gspread()
                 if is_duplicate(sheet, title):
