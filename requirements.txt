@@ -1,8 +1,9 @@
-streamlit
+streamlit==1.32.2
+torch==2.1.2
+transformers==4.38.2
+numpy==1.26.4
 newspaper3k
-transformers
 gspread
 oauth2client
 validators
 lxml_html_clean
-torch==2.0.1
