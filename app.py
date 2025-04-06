@@ -36,11 +36,9 @@ def init_gspread():
 
 @st.cache_resource
 def load_summarizer():
-    os.environ["HUGGINGFACE_HUB_TOKEN"] = st.secrets["huggingface"]["token"]
     model_name = "sshleifer/distilbart-cnn-12-6"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    return pipeline("summarization", model=model, tokenizer=tokenizer)
+    summarizer = pipeline("summarization", model=model_name, tokenizer=model_name)
+    return summarizer
 
 def extract_article(url):
     article = Article(url)
