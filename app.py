@@ -6,19 +6,22 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import validators
 import re
+import json
 
 # --- Config ---
 st.set_page_config(page_title="📰 News Summarizer to Google Sheets", layout="centered")
 st.title("📰 News Summarizer & Google Sheet Saver")
 
-# # Load credentials from Streamlit Secrets
-# SERVICE_ACCOUNT = st.secrets["service_account"]
-
 # Setup GSpread
 @st.cache_resource
 def init_gspread():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict('gen-lang-client-0709660306-d66c48c393e4.json', scope)
+
+    # Load the service account JSON from file
+    with open("gen-lang-client-0709660306-d66c48c393e4.json") as f:
+        service_account_info = json.load(f)
+
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(service_account_info, scope)
     client = gspread.authorize(creds)
 
     sheet_name = "Project@KI"
@@ -29,14 +32,15 @@ def init_gspread():
         spreadsheet = client.create(sheet_name)
         sheet = spreadsheet.sheet1
         sheet.append_row(["Title", "Summary", "Top Image URL", "Timestamp"])
+
     return sheet, spreadsheet.id
 
-# Load summarizer
+# Load summarizer model
 @st.cache_resource
 def get_summarizer():
     return pipeline("summarization", model="facebook/bart-large-cnn")
 
-# Extract and summarize
+# Extract article content
 def extract_article_data(url):
     article = Article(url)
     article.download()
@@ -47,6 +51,7 @@ def extract_article_data(url):
         "top_image": article.top_image
     }
 
+# Summarize the article text
 def summarize_content(text, summarizer):
     text = re.sub(r"[^a-zA-Z0-9 ]", " ", text)
     summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
@@ -80,6 +85,7 @@ if st.button("Summarize and Save") and url:
                     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     sheet.append_row([data["title"], summary, data["top_image"], timestamp])
                     st.success("✅ Saved to Google Sheet!")
+
                     sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}"
                     st.markdown(f"[🔗 Open Sheet]({sheet_url})", unsafe_allow_html=True)
 
