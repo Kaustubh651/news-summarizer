@@ -1,12 +1,11 @@
 import os
 import streamlit as st
 from newspaper import Article
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import validators
-import traceback
 
 # Constants
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -30,6 +29,7 @@ def init_gspread():
         sheet = client.open(SPREADSHEET_NAME).add_worksheet(title=WORKSHEET_NAME, rows="100", cols="4")
         sheet.append_row(["Title", "Summary", "Top Image URL", "Timestamp"])
 
+    # Ensure headers are in place
     if not sheet.row_values(1):
         sheet.append_row(["Title", "Summary", "Top Image URL", "Timestamp"])
     return sheet
@@ -37,7 +37,8 @@ def init_gspread():
 @st.cache_resource
 def load_summarizer():
     model_name = "sshleifer/distilbart-cnn-12-6"
-    return pipeline("summarization", model=model_name, tokenizer=model_name)
+    summarizer = pipeline("summarization", model=model_name, tokenizer=model_name)
+    return summarizer
 
 def extract_article(url):
     article = Article(url)
@@ -46,16 +47,19 @@ def extract_article(url):
     return article.title.strip(), article.text.strip(), article.top_image
 
 def summarize_text(text, summarizer, max_len=130, min_len=30):
+    # Hugging Face tokenizer limit = 1024 tokens. Approx ~800-900 words.
     max_input_words = 900
     input_words = text.split()
 
     if len(input_words) > max_input_words:
-        text = " ".join(input_words[:max_input_words])
+        input_words = input_words[:max_input_words]
+        text = " ".join(input_words)
 
     try:
         return summarizer(text, max_length=max_len, min_length=min_len, do_sample=False)[0]['summary_text']
     except Exception as e:
         raise RuntimeError(f"Summarization failed: {str(e)}")
+
 
 def is_duplicate(sheet, title):
     rows = sheet.get_all_values()
@@ -90,13 +94,12 @@ if st.button("Summarize and Save") and url:
                         st.subheader("🧾 Summary")
                         st.write(summary)
 
-                        if top_image and top_image != "0":
+                        if top_image:
                             try:
                                 st.image(top_image, caption="Top Image")
                             except Exception as img_error:
                                 st.warning(f"⚠️ Could not load image: {img_error}")
-                        else:
-                            st.info("ℹ️ No valid top image found.")
+
 
                     sheet = init_gspread()
 
@@ -111,5 +114,4 @@ if st.button("Summarize and Save") and url:
                     st.markdown(f"[🔗 Open Google Sheet]({sheet_url})", unsafe_allow_html=True)
 
             except Exception as e:
-                st.error("❌ An error occurred:")
-                st.code(traceback.format_exc())
+                st.error(f"❌ An error occurred:\n\n{str(e)}")
