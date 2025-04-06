@@ -5,4 +5,4 @@ gspread
 oauth2client
 validators
 lxml_html_clean
-torch
+torch==2.0.1
