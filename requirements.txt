@@ -1,8 +1,7 @@
-streamlit==1.32.2
-newspaper3k==0.2.8
-transformers==4.37.2
-torch==2.0.1
-gspread==5.11.3
-oauth2client==4.1.3
-validators==0.22.0
-lxml==4.9.3
+streamlit
+newspaper3k
+transformers
+gspread
+oauth2client
+validators
+lxml
