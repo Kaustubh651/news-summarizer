@@ -1,7 +1,7 @@
 streamlit
 newspaper3k
 transformers
-torch
+pip install torch==2.0.1
 gspread
 oauth2client
 validators
