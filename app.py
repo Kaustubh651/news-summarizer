@@ -4,12 +4,15 @@ from newspaper import Article
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import validators
 
 # Constants
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 SPREADSHEET_NAME = "Project@KI"
+WORKSHEET_NAME = "Articles"
 
-# Set page config
+# Page setup
 st.set_page_config(page_title="News Summarizer to Google Sheet", layout="centered")
 st.title("📰 News Summarizer & Google Sheet Saver")
 
@@ -20,17 +23,15 @@ SERVICE_ACCOUNT_INFO = st.secrets["service_account"]
 def init_gspread():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(SERVICE_ACCOUNT_INFO, SCOPE)
     client = gspread.authorize(creds)
-
     try:
-        sheet = client.open(SPREADSHEET_NAME).sheet1
-    except gspread.exceptions.SpreadsheetNotFound:
-        sheet = client.create(SPREADSHEET_NAME).sheet1
-        sheet.append_row(["Title", "Summary", "Top Image URL"])
+        sheet = client.open(SPREADSHEET_NAME).worksheet(WORKSHEET_NAME)
+    except gspread.exceptions.WorksheetNotFound:
+        sheet = client.open(SPREADSHEET_NAME).add_worksheet(title=WORKSHEET_NAME, rows="100", cols="4")
+        sheet.append_row(["Title", "Summary", "Top Image URL", "Timestamp"])
 
-    # Make sure headers exist
+    # Ensure headers are in place
     if not sheet.row_values(1):
-        sheet.append_row(["Title", "Summary", "Top Image URL"])
-
+        sheet.append_row(["Title", "Summary", "Top Image URL", "Timestamp"])
     return sheet
 
 @st.cache_resource
@@ -58,39 +59,48 @@ def is_duplicate(sheet, title):
     existing_titles = [row[0] for row in rows[1:] if row]
     return title in existing_titles
 
-# --- MAIN UI ---
+# --- UI Input ---
 url = st.text_input("Paste a news article URL")
 
 if st.button("Summarize and Save") and url:
-    with st.spinner("🔍 Extracting and summarizing article..."):
-        try:
-            title, content, top_image = extract_article(url)
+    if not validators.url(url):
+        st.warning("⚠️ Please enter a valid URL.")
+    else:
+        with st.spinner("🔍 Extracting and summarizing article..."):
+            try:
+                title, content, top_image = extract_article(url)
 
-            if not content:
-                st.error("❌ Unable to extract any content from the article.")
-            else:
-                summarizer = load_summarizer()
-                summary = summarize_text(content, summarizer)
-
-                st.subheader("📌 Title")
-                st.write(title)
-
-                st.subheader("🧾 Summary")
-                st.write(summary)
-
-                if top_image:
-                    st.image(top_image, caption="Top Image", use_container_width=True)
-
-                sheet = init_gspread()
-
-                if is_duplicate(sheet, title):
-                    st.warning("⚠️ This article already exists in the Google Sheet.")
+                if not content:
+                    st.error("❌ Unable to extract any content from the article.")
                 else:
-                    sheet.append_row([title, summary, top_image if top_image else ""])
-                    st.success("✅ Article successfully added to Google Sheet!")
+                    summarizer = load_summarizer()
+                    try:
+                        summary = summarize_text(content, summarizer)
+                    except Exception:
+                        st.warning("⚠️ Failed to summarize content. Showing partial text.")
+                        summary = content[:500] + "..."
 
-                sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}"
-                st.markdown(f"[🔗 Open Google Sheet]({sheet_url})", unsafe_allow_html=True)
+                    with st.expander("🔎 View Summary"):
+                        st.subheader("📌 Title")
+                        st.write(title)
 
-        except Exception as e:
-            st.error(f"❌ An error occurred:\n\n{str(e)}")
+                        st.subheader("🧾 Summary")
+                        st.write(summary)
+
+                        if top_image:
+                            st.image(top_image, caption="Top Image", use_container_width=True)
+
+                    sheet = init_gspread()
+
+                    if is_duplicate(sheet, title):
+                        st.warning("⚠️ This article already exists in the Google Sheet.")
+                    else:
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        sheet.append_row([title, summary, top_image if top_image else "", timestamp])
+                        st.success("✅ Article successfully added to Google Sheet!")
+
+                    sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet.spreadsheet.id}"
+                    st.markdown(f"[🔗 Open Google Sheet]({sheet_url})", unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"❌ An error occurred:\n\n{str(e)}")
