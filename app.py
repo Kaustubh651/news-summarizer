@@ -92,7 +92,7 @@ if st.button("Summarize and Save") and url:
 
                         if top_image and top_image != "0":
                             try:
-                                st.image(top_image, caption="Top Image", use_container_width=True)
+                                st.image(top_image, caption="Top Image")
                             except Exception as img_error:
                                 st.warning(f"⚠️ Could not load image: {img_error}")
                         else:
