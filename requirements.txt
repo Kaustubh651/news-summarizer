@@ -5,3 +5,4 @@ gspread
 oauth2client
 validators
 lxml_html_clean
+torch
