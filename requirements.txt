@@ -4,4 +4,4 @@ transformers
 gspread
 oauth2client
 validators
-lxml
+lxml_html_clean
