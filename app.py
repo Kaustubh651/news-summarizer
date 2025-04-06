@@ -47,10 +47,19 @@ def extract_article(url):
     return article.title.strip(), article.text.strip(), article.top_image
 
 def summarize_text(text, summarizer, max_len=130, min_len=30):
-    input_len = len(text.split())
-    if input_len < 60:
-        max_len = 60
-    return summarizer(text, max_length=max_len, min_length=min_len, do_sample=False)[0]['summary_text']
+    # Hugging Face tokenizer limit = 1024 tokens. Approx ~800-900 words.
+    max_input_words = 900
+    input_words = text.split()
+
+    if len(input_words) > max_input_words:
+        input_words = input_words[:max_input_words]
+        text = " ".join(input_words)
+
+    try:
+        return summarizer(text, max_length=max_len, min_length=min_len, do_sample=False)[0]['summary_text']
+    except Exception as e:
+        raise RuntimeError(f"Summarization failed: {str(e)}")
+
 
 def is_duplicate(sheet, title):
     rows = sheet.get_all_values()
