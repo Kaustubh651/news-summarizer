@@ -10,7 +10,7 @@ import validators
 # Constants
 SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 SPREADSHEET_NAME = "Project@KI"
-WORKSHEET_NAME = "Articles"
+WORKSHEET_NAME = "Sheet1"
 
 # Page setup
 st.set_page_config(page_title="News Summarizer to Google Sheet", layout="centered")
@@ -86,7 +86,11 @@ if st.button("Summarize and Save") and url:
                         st.write(summary)
 
                         if top_image:
-                            st.image(top_image, caption="Top Image", use_container_width=True)
+                            try:
+                                st.image(top_image, caption="Top Image")
+                            except Exception as img_error:
+                                st.warning(f"⚠️ Could not load image: {img_error}")
+
 
                     sheet = init_gspread()
 
